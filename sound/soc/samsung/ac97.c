@@ -225,9 +225,9 @@ static int s3c_ac97_trigger(struct snd_pcm_substream *substream, int cmd,
 				struct snd_soc_dai *dai)
 {
 	u32 ac_glbctrl;
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	/*struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct s3c_dma_params *dma_data =
-		snd_soc_dai_get_dma_data(rtd->cpu_dai, substream);
+		snd_soc_dai_get_dma_data(rtd->cpu_dai, substream);*/
 
 	ac_glbctrl = readl(s3c_ac97.regs + S3C_AC97_GLBCTRL);
 	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE)
@@ -253,10 +253,10 @@ static int s3c_ac97_trigger(struct snd_pcm_substream *substream, int cmd,
 
 	writel(ac_glbctrl, s3c_ac97.regs + S3C_AC97_GLBCTRL);
 
-	if (!dma_data->ops)
+	/*if (!dma_data->ops)
 		dma_data->ops = samsung_dma_get_ops();
 
-	dma_data->ops->started(dma_data->channel);
+	dma_data->ops->started(dma_data->channel);*/
 
 	return 0;
 }
@@ -265,9 +265,9 @@ static int s3c_ac97_mic_trigger(struct snd_pcm_substream *substream,
 				    int cmd, struct snd_soc_dai *dai)
 {
 	u32 ac_glbctrl;
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	/*struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct s3c_dma_params *dma_data =
-		snd_soc_dai_get_dma_data(rtd->cpu_dai, substream);
+		snd_soc_dai_get_dma_data(rtd->cpu_dai, substream);*/
 
 	ac_glbctrl = readl(s3c_ac97.regs + S3C_AC97_GLBCTRL);
 	ac_glbctrl &= ~S3C_AC97_GLBCTRL_MICINTM_MASK;
@@ -287,10 +287,10 @@ static int s3c_ac97_mic_trigger(struct snd_pcm_substream *substream,
 
 	writel(ac_glbctrl, s3c_ac97.regs + S3C_AC97_GLBCTRL);
 
-	if (!dma_data->ops)
+	/*if (!dma_data->ops)
 		dma_data->ops = samsung_dma_get_ops();
 
-	dma_data->ops->started(dma_data->channel);
+	dma_data->ops->started(dma_data->channel);*/
 
 	return 0;
 }
