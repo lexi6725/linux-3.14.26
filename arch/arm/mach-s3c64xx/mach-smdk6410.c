@@ -59,9 +59,14 @@
 #include <mach/regs-gpio.h>
 #include <mach/gpio-samsung.h>
 #include <linux/platform_data/ata-samsung_cf.h>
+#include <linux/platform_data/mtd-nand-s3c2410.h>
 #include <linux/platform_data/i2c-s3c2410.h>
 #include <plat/fb.h>
 #include <plat/gpio-cfg.h>
+
+#include <linux/dm9000.h>
+#include <linux/mtd/partitions.h>
+#include <uapi/mtd/mtd-abi.h>
 
 #include <plat/clock.h>
 #include <plat/devs.h>
@@ -262,6 +267,94 @@ static struct samsung_keypad_platdata smdk6410_keypad_data __initdata = {
 	.cols		= 8,
 };
 
+/* Ethernet */
+#ifdef CONFIG_DM9000
+#define S3C64XX_PA_DM9000	(0x18000000)
+#define S3C64XX_SZ_DM9000	SZ_1M
+#define S3C64XX_VA_DM9000	S3C_ADDR(0x03b00300)
+
+static struct resource dm9000_resources[] = {
+	[0] = {
+		.start		= S3C64XX_PA_DM9000,
+		.end		= S3C64XX_PA_DM9000 + 3,
+		.flags		= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start		= S3C64XX_PA_DM9000 + 4,
+		.end		= S3C64XX_PA_DM9000 + S3C64XX_SZ_DM9000 - 1, 
+		.flags		= IORESOURCE_MEM,
+	},
+	[2] = {
+		.start		= IRQ_EINT(7),
+		.end		= IRQ_EINT(7),
+		.flags		= IORESOURCE_IRQ | IRQF_TRIGGER_HIGH,
+	},
+};
+
+static struct dm9000_plat_data dm9000_setup = {
+	.flags			= DM9000_PLATF_16BITONLY,
+	.dev_addr		= { 0x08, 0x90, 0x00, 0xa0, 0x90, 0x90 },
+};
+
+static struct platform_device s3c_device_dm9000 = {
+	.name			= "dm9000",
+	.id				= 0,
+	.num_resources	= ARRAY_SIZE(dm9000_resources),
+	.resource		= dm9000_resources,
+	.dev			= {
+		.platform_data = &dm9000_setup,
+	}
+};
+#endif //#ifdef CONFIG_DM9000
+
+/*
+ * Configuring Nandflash on SMDK6410
+ */
+
+struct mtd_partition ok6410_nand_part[] = {
+	{
+		.name		= "Bootloader",
+		.offset		= 0,
+		.size		= (2 * SZ_1M),
+		.mask_flags	= MTD_CAP_NANDFLASH,
+	},
+	{
+		.name		= "Kernel",
+		.offset		= (5 * SZ_1M),
+		.size		= (25*SZ_1M) ,
+		.mask_flags	= MTD_CAP_NANDFLASH,
+	},
+	{
+		.name		= "File System",
+		.offset		= (30 * SZ_1M),
+		.size		= (200*SZ_1M) ,
+	},
+	{
+		.name		= "User",
+		.offset		= MTDPART_OFS_APPEND,
+		.size		= MTDPART_SIZ_FULL,
+	}
+};
+
+static struct s3c2410_nand_set ok6410_nand_sets[] = {
+	[0] = {
+		.name       = "nand",
+		.nr_chips   = 1,
+		.nr_partitions  = ARRAY_SIZE(ok6410_nand_part),
+		.partitions = ok6410_nand_part,
+	},
+};
+
+static struct s3c2410_platform_nand ok6410_nand_info = {
+	.tacls      = 25,
+	.twrph0     = 55,
+	.twrph1     = 40,
+	.nr_sets    = ARRAY_SIZE(ok6410_nand_sets),
+	.sets       = ok6410_nand_sets,
+};
+
+
+
 static struct map_desc smdk6410_iodesc[] = {};
 
 static struct platform_device *smdk6410_devices[] __initdata = {
@@ -273,23 +366,26 @@ static struct platform_device *smdk6410_devices[] __initdata = {
 #endif
 	&s3c_device_i2c0,
 	&s3c_device_i2c1,
-	&s3c_device_fb,
+	//&s3c_device_fb,
 	&s3c_device_ohci,
-	&samsung_device_pwm,
+	//&samsung_device_pwm,
 	&s3c_device_usb_hsotg,
-	&s3c64xx_device_iisv4,
+	//&s3c64xx_device_iisv4,
 	&samsung_device_keypad,
 
 #ifdef CONFIG_REGULATOR
 	&smdk6410_b_pwr_5v,
 #endif
-	&smdk6410_lcd_powerdev,
-
-	&smdk6410_smsc911x,
-	&s3c_device_adc,
-	&s3c_device_cfcon,
+	//&smdk6410_lcd_powerdev,
+#ifdef CONFIG_DM9000
+	&s3c_device_dm9000,
+#endif
+	&s3c_device_nand,   // lexi
+	//&smdk6410_smsc911x,
+	//&s3c_device_adc,
+	//&s3c_device_cfcon,
 	&s3c_device_rtc,
-	&s3c_device_ts,
+	//&s3c_device_ts,
 	&s3c_device_wdt,
 };
 
@@ -599,6 +695,7 @@ static struct i2c_board_info i2c_devs0[] __initdata = {
 	{ I2C_BOARD_INFO("24c08", 0x50), },
 	{ I2C_BOARD_INFO("wm8580", 0x1b), },
 
+	{ I2C_BOARD_INFO("ov965x", 0x30), }, // lexi
 #ifdef CONFIG_SMDK6410_WM1192_EV1
 	{ I2C_BOARD_INFO("wm8312", 0x34),
 	  .platform_data = &smdk6410_wm1192_pdata,
@@ -659,12 +756,13 @@ static void __init smdk6410_machine_init(void)
 
 	s3c_i2c0_set_platdata(NULL);
 	s3c_i2c1_set_platdata(NULL);
-	s3c_fb_set_platdata(&smdk6410_lcd_pdata);
+	//s3c_fb_set_platdata(&smdk6410_lcd_pdata);
 	s3c_hsotg_set_platdata(&smdk6410_hsotg_pdata);
 
 	samsung_keypad_set_platdata(&smdk6410_keypad_data);
 
-	s3c24xx_ts_set_platdata(NULL);
+	s3c_nand_set_platdata(&ok6410_nand_info);  // lexi
+	//s3c24xx_ts_set_platdata(NULL);
 
 	/* configure nCS1 width to 16 bits */
 
@@ -686,17 +784,17 @@ static void __init smdk6410_machine_init(void)
 		     (4 << S3C64XX_SROM_BCX__TCOS__SHIFT) |
 		     (0 << S3C64XX_SROM_BCX__TACS__SHIFT), S3C64XX_SROM_BC1);
 
-	gpio_request(S3C64XX_GPN(5), "LCD power");
-	gpio_request(S3C64XX_GPF(13), "LCD power");
+	//gpio_request(S3C64XX_GPN(5), "LCD power");
+	//gpio_request(S3C64XX_GPF(13), "LCD power");
 
 	i2c_register_board_info(0, i2c_devs0, ARRAY_SIZE(i2c_devs0));
 	i2c_register_board_info(1, i2c_devs1, ARRAY_SIZE(i2c_devs1));
 
-	s3c_ide_set_platdata(&smdk6410_ide_pdata);
+	//s3c_ide_set_platdata(&smdk6410_ide_pdata);
 
 	platform_add_devices(smdk6410_devices, ARRAY_SIZE(smdk6410_devices));
 
-	samsung_bl_set(&smdk6410_bl_gpio_info, &smdk6410_bl_data);
+	//samsung_bl_set(&smdk6410_bl_gpio_info, &smdk6410_bl_data);
 }
 
 MACHINE_START(SMDK6410, "SMDK6410")
