@@ -78,7 +78,8 @@ struct mtd_part_parser {
 
 extern void register_mtd_parser(struct mtd_part_parser *parser);
 extern void deregister_mtd_parser(struct mtd_part_parser *parser);
-
+int add_mtd_partitions(struct mtd_info *, const struct mtd_partition *, int);
+int del_mtd_partitions(struct mtd_info *);
 int mtd_is_partition(const struct mtd_info *mtd);
 int mtd_add_partition(struct mtd_info *master, const char *name,
 		      long long offset, long long length);

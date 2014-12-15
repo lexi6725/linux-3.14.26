@@ -66,7 +66,7 @@
 
 #include <plat/regs-nand.h>
 #include <plat/nand.h>
-#include "../mtdcore.h"
+
 enum s3c_cpu_type {
     TYPE_S3C2450,	/* including s3c2416 */
     TYPE_S3C6400,
@@ -148,7 +148,7 @@ static struct nand_ecclayout s3c_nand_oob_mlc_64 = {
 };
 
 
-/*static struct nand_ecclayout s3c_nand_oob_mlc_128_4bit = {
+static struct nand_ecclayout s3c_nand_oob_mlc_128_4bit = {
     .eccbytes = 64,
     .eccpos = {
         64,65,66,67,68,69,70,71,72,73,
@@ -161,7 +161,7 @@ static struct nand_ecclayout s3c_nand_oob_mlc_64 = {
     .oobfree = {
         {.offset = 2,
          .length = 60}}
-};*/
+};
 
 
 static struct nand_ecclayout s3c_nand_oob_mlc_128_8bit = {
@@ -726,16 +726,16 @@ static int s3c_nand_write_oob_1bit(struct mtd_info *mtd, struct nand_chip *chip,
 }
 
 static int s3c_nand_read_oob_1bit(struct mtd_info *mtd, struct nand_chip *chip,
-                                  int page)
+                                  int page, int sndcmd)
 {
     uint8_t *ecc_calc = chip->buffers->ecccalc;
     int eccbytes = chip->ecc.bytes;
     int secc_start = mtd->oobsize - eccbytes;
 
-   // if (sndcmd) { // lexi
+    if (sndcmd) {
         chip->cmdfunc(mtd, NAND_CMD_READOOB, 0, page);
-      //  sndcmd = 0;
-  //  }
+        sndcmd = 0;
+    }
 
     chip->ecc.hwctl(mtd, NAND_ECC_READ);
     chip->read_buf(mtd, chip->oob_poi, secc_start);
@@ -746,11 +746,11 @@ static int s3c_nand_read_oob_1bit(struct mtd_info *mtd, struct nand_chip *chip,
     if (!(chip->oob_poi[2] == 0x85 && chip->oob_poi[3] == 0x19))
         chip->ecc.correct(mtd, chip->oob_poi, chip->oob_poi + secc_start, 0);
 
-    return 0;// sndcmd;
+    return sndcmd;
 }
 
-static int s3c_nand_write_page_1bit(struct mtd_info *mtd, struct nand_chip *chip,
-                                     const uint8_t *buf, int oob_required)
+static void s3c_nand_write_page_1bit(struct mtd_info *mtd, struct nand_chip *chip,
+                                     const uint8_t *buf)
 {
     int i, eccsize = chip->ecc.size;
     int eccbytes = chip->ecc.bytes;
@@ -780,11 +780,10 @@ static int s3c_nand_write_page_1bit(struct mtd_info *mtd, struct nand_chip *chip
         chip->oob_poi[secc_start + i] = ecc_calc[chip->ecc.total + i];
 
     chip->write_buf(mtd, chip->oob_poi + secc_start, eccbytes);
-	return 0;
 }
 
 static int s3c_nand_read_page_1bit(struct mtd_info *mtd, struct nand_chip *chip,
-                                   uint8_t *buf, int oob_required, int page)
+                                   uint8_t *buf)
 {
     int i, stat, eccsize = chip->ecc.size;
     int eccbytes = chip->ecc.bytes;
@@ -832,7 +831,7 @@ static int s3c_nand_read_page_1bit(struct mtd_info *mtd, struct nand_chip *chip,
  * Written by jsgood
  */
 static int s3c_nand_read_page_4bit(struct mtd_info *mtd, struct nand_chip *chip,
-                                   uint8_t *buf, int oob_required, int page)
+                                   uint8_t *buf)
 {
     int i, stat, eccsize = chip->ecc.size;
     int eccbytes = chip->ecc.bytes;
@@ -868,8 +867,8 @@ static int s3c_nand_read_page_4bit(struct mtd_info *mtd, struct nand_chip *chip,
  * Hardware specific page write function for MLC.
  * Written by jsgood
  */
-static int s3c_nand_write_page_4bit(struct mtd_info *mtd, struct nand_chip *chip,
-                                     const uint8_t *buf, int oob_required)
+static void s3c_nand_write_page_4bit(struct mtd_info *mtd, struct nand_chip *chip,
+                                     const uint8_t *buf)
 {
     int i, eccsize = chip->ecc.size;
     int eccbytes = chip->ecc.bytes;
@@ -890,7 +889,6 @@ static int s3c_nand_write_page_4bit(struct mtd_info *mtd, struct nand_chip *chip
         chip->oob_poi[mecc_pos[i]] = ecc_calc[i];
 
     chip->write_buf(mtd, chip->oob_poi, mtd->oobsize);
-	return 0;
 }
 #endif
 
@@ -1049,8 +1047,8 @@ int s3c_nand_correct_data_8bit(struct mtd_info *mtd, u_char *dat, u_char *read_e
 }
 #endif
 
-int s3c_nand_write_page_8bit(struct mtd_info *mtd, struct nand_chip *chip,
-                              const uint8_t *buf, int oob_required)
+void s3c_nand_write_page_8bit(struct mtd_info *mtd, struct nand_chip *chip,
+                              const uint8_t *buf)
 {
     int i, eccsize = 512;
     int eccbytes = 13;
@@ -1069,12 +1067,11 @@ int s3c_nand_write_page_8bit(struct mtd_info *mtd, struct nand_chip *chip,
         chip->oob_poi[mecc_pos[i]] = ecc_calc[i];
 
     chip->write_buf(mtd, chip->oob_poi, mtd->oobsize);
-	return 0;
 }
 
 
 int s3c_nand_read_page_8bit(struct mtd_info *mtd, struct nand_chip *chip,
-                            uint8_t *buf, int oob_required, int page)
+                            uint8_t *buf)
 {
     int i, stat, eccsize = 512;
     int eccbytes = 13;
@@ -1110,6 +1107,26 @@ int s3c_nand_read_page_8bit(struct mtd_info *mtd, struct nand_chip *chip,
     return 0;
 }
 
+static bool find_full_id_nand(struct mtd_info *mtd, struct nand_chip *chip,
+		   struct nand_flash_dev *type, u8 *id_data, int *busw)
+{
+	if (!strncmp(type->id, id_data, type->id_len)) {
+		mtd->writesize = type->pagesize;
+		mtd->erasesize = type->erasesize;
+		mtd->oobsize = type->oobsize;
+
+		chip->bits_per_cell = id_data[2];
+		chip->chipsize = (uint64_t)type->chipsize << 20;
+		chip->options |= type->options;
+		chip->ecc_strength_ds = NAND_ECC_STRENGTH(type);
+		chip->ecc_step_ds = NAND_ECC_STEP(type);
+
+		*busw = type->options & NAND_BUSWIDTH_16;
+
+		return true;
+	}
+	return false;
+}
 
 /* s3c_nand_probe
  *
@@ -1137,14 +1154,14 @@ static int s3c_nand_probe(struct platform_device *pdev, enum s3c_cpu_type cpu_ty
 
     /* get the clock source and enable it */
 
-    s3c_nand.clk = clk_get(&pdev->dev, "nand");
+    s3c_nand.clk = devm_clk_get(&pdev->dev, "nand");
     if (IS_ERR(s3c_nand.clk)) {
         dev_err(&pdev->dev, "failed to get clock");
         err = -ENOENT;
         goto exit_error;
     }
 
-    clk_enable(s3c_nand.clk);
+    clk_prepare_enable(s3c_nand.clk);
 
     /* allocate and map the resource */
 
@@ -1239,19 +1256,48 @@ static int s3c_nand_probe(struct platform_device *pdev, enum s3c_cpu_type cpu_ty
 
         dev_id = tmp = readb(nand->IO_ADDR_R); /* Device ID */
 
-        printk("forlinx nandflash dev_id=%x\n",dev_id);
+       // printk("forlinx nandflash dev_id=%x\n",dev_id);
 
-        for (j = 0; nand_flash_ids[j].name != NULL; j++) {
-            if (dev_id == nand_flash_ids[j].dev_id) {
+        /*for (j = 0; nand_flash_ids[j].name != NULL; j++) {
+            if (tmp == nand_flash_ids[j].dev_id) {
                 type = &nand_flash_ids[j];
                 break;
             }
-        }
+        }*/
+        u8 id_data[8];
+	int my_busw;
+        s3c_nand_hwcontrol(0, NAND_CMD_READID, NAND_NCE | NAND_CLE | NAND_CTRL_CHANGE);
+        s3c_nand_hwcontrol(0, 0x00, NAND_CTRL_CHANGE | NAND_NCE | NAND_ALE);
+        s3c_nand_hwcontrol(0, 0x00, NAND_NCE | NAND_ALE);
+        s3c_nand_hwcontrol(0, NAND_CMD_NONE, NAND_NCE | NAND_CTRL_CHANGE);
+	
+	for (i = 0; i < 8; i++)
+		id_data[i] = readb(nand->IO_ADDR_R);
+
+	if (!type)
+		type = nand_flash_ids;
+
+	my_busw = nand->options & NAND_BUSWIDTH_16;
+	for (; type->name != NULL; type++) {
+		if (type->id_len) {
+			if (find_full_id_nand(s3c_mtd, nand, type, id_data, &my_busw))
+			{
+			//	pr_info("1. Nand name: %s, dev_di : %x\n", type->name, type->dev_id);
+				
+				break;
+			}
+		} else if (tmp == type->dev_id) {
+			//pr_info("2. Nand name: %s, dev_di : %x\n", type->name, type->dev_id);
+			//type = &nand_flash_ids[j];
+				break;
+		}
+	}
 
         if (!type) {
-            printk("Unknown NAND Device.\n");
+            pr_info("Unknown NAND Device.\n");
             goto exit_error;
         }
+	pr_info("%s: nand pagesize : %d\n", type->name, type->pagesize);
 
         nand->bits_per_cell = readb(nand->IO_ADDR_R);	/* the 3rd byte */
         tmp = readb(nand->IO_ADDR_R);			/* the 4th byte */
@@ -1272,7 +1318,7 @@ static int s3c_nand_probe(struct platform_device *pdev, enum s3c_cpu_type cpu_ty
                     nand->ecc.write_oob = s3c_nand_write_oob_1bit;
                     nand->ecc.layout = &s3c_nand_oob_64;
 
-                    printk("forlinx********Nandflash:Type=SLC  ChipName:samsung-K9F2G08U0B or hynix-HY27UF082G2B****** \n");
+                    pr_info("forlinx********Nandflash:Type=SLC  ChipName:samsung-K9F2G08U0B or hynix-HY27UF082G2B****** \n");
 
 
                 } else
@@ -1298,19 +1344,19 @@ static int s3c_nand_probe(struct platform_device *pdev, enum s3c_cpu_type cpu_ty
                     {
                         //K9GAG08U0D     size=2GB  type=MLC  Page=4K
                         nand->ecc.layout = &s3c_nand_oob_mlc_128_8bit;
-                        printk("forlinx****Nandflash:ChipType= MLC  ChipName=samsung-K9GAG08U0D************ \n");
+                        pr_info("forlinx****Nandflash:ChipType= MLC  ChipName=samsung-K9GAG08U0D************ \n");
                     }
                     else if(childType==0x14)
                     {
                         //K9GAG08U0M     size=2GB  type=MLC  Page=4K
                         nand->ecc.layout = &s3c_nand_oob_mlc_128_8bit;
-                        printk("forlinx****Nandflash:ChipType= MLC  ChipName=samsung-K9GAG08U0M************ \n");
+                        pr_info("forlinx****Nandflash:ChipType= MLC  ChipName=samsung-K9GAG08U0M************ \n");
                     }
                     else if(childType==0x84)
                     {
                         //K9GAG08U0E     size=2GB  type=MLC  Page=8K
                         nand->ecc.layout = &s3c_nand_oob_mlc_232_8bit;
-                        printk("forlinx****Nandflash:ChipType= MLC  ChipName=samsung-K9GAG08U0E************ \n");
+                        pr_info("forlinx****Nandflash:ChipType= MLC  ChipName=samsung-K9GAG08U0E************ \n");
 
                     }
 
@@ -1322,8 +1368,9 @@ static int s3c_nand_probe(struct platform_device *pdev, enum s3c_cpu_type cpu_ty
                     nand->ecc.write_page = s3c_nand_write_page_8bit;
                     nand->ecc.size = 512;
                     nand->ecc.bytes = 13;
+		    nand->ecc.strength = 4;
                     nand->ecc.layout = &s3c_nand_oob_mlc_128_8bit;
-                    printk("forlinx****Nandflash:ChipType= MLC  ChipName=samsung-K9LBG08U0D************ \n");
+                    pr_info("forlinx1****Nandflash:ChipType= MLC  ChipName=samsung-K9LBG08U0D************ \n");
 
 
                 }
@@ -1337,7 +1384,7 @@ static int s3c_nand_probe(struct platform_device *pdev, enum s3c_cpu_type cpu_ty
                     nand->ecc.bytes = 8;	/* really 7 bytes */
                     nand->ecc.layout = &s3c_nand_oob_mlc_64;
 
-                    printk("forlinx****Nandflash:ChipType=MLC  ChipName=samsung-K9G8G08U0A************** \n");
+                    pr_info("forlinx****Nandflash:ChipType=MLC  ChipName=samsung-K9G8G08U0A************** \n");
 
                 }
 
@@ -1351,7 +1398,7 @@ static int s3c_nand_probe(struct platform_device *pdev, enum s3c_cpu_type cpu_ty
             nand->ecc.size = 512;
             nand->ecc.bytes = 13;
             nand->ecc.layout = &s3c_nand_oob_mlc_128_8bit;
-            printk("forlinx****Nandflash:ChipType= MLC  ChipName=samsung-K9LBG08U0D************ \n");
+            pr_info("forlinx2****Nandflash:ChipType= MLC  ChipName=samsung-K9LBG08U0D************ \n");
 
         }
         else if(manuf==0x2c  && dev_id ==0x48)
@@ -1364,7 +1411,7 @@ static int s3c_nand_probe(struct platform_device *pdev, enum s3c_cpu_type cpu_ty
             nand->ecc.bytes = 13;
             nand->ecc.layout = &s3c_nand_oob_mlc_128_8bit;
 
-            printk("forlinx******Nandflash:ChipType= SLC  ChipName=MT29F16G08ABACAWP\n");
+            pr_info("forlinx******Nandflash:ChipType= SLC  ChipName=MT29F16G08ABACAWP\n");
 
         } else if(manuf==0x2c  && dev_id ==0x38)
         {
@@ -1376,7 +1423,7 @@ static int s3c_nand_probe(struct platform_device *pdev, enum s3c_cpu_type cpu_ty
                 nand->ecc.bytes = 13;
                 nand->ecc.layout = &s3c_nand_oob_mlc_128_8bit;
 
-                printk("forlinx******Nandflash:ChipType= SLC  ChipName=MT29F8G08ABABAWP\n");
+                pr_info("forlinx******Nandflash:ChipType= SLC  ChipName=MT29F8G08ABABAWP\n");
 
         }else
         {
@@ -1385,14 +1432,14 @@ static int s3c_nand_probe(struct platform_device *pdev, enum s3c_cpu_type cpu_ty
             nand->bits_per_cell = 0;
             nand->ecc.bytes = 4;
             nand->ecc.layout = &s3c_nand_oob_16;
-            printk("forlinx *****Nandflash:ChipType= Unknow\n");
+            pr_info("forlinx *****Nandflash:ChipType= Unknow\n");
 
         }
 
-        printk("S3C NAND Driver is using hardware ECC.\n");
+        pr_info("S3C NAND Driver is using hardware ECC.\n");
 #else
         nand->ecc.mode = NAND_ECC_SOFT;
-        printk("S3C NAND Driver is using software ECC.\n");
+        pr_info("S3C NAND Driver is using software ECC.\n");
 #endif
         if (nand_scan(s3c_mtd, 1)) {
             ret = -ENXIO;
@@ -1403,7 +1450,7 @@ static int s3c_nand_probe(struct platform_device *pdev, enum s3c_cpu_type cpu_ty
         add_mtd_partitions(s3c_mtd, sets->partitions, sets->nr_partitions);
     }
 
-    pr_debug("initialized ok\n");
+    pr_info("initialized ok\n");
     return 0;
 
 exit_error:
@@ -1437,14 +1484,14 @@ static int s5pc100_nand_probe(struct platform_device *dev)
 #if defined(CONFIG_PM)
 static int s3c_nand_suspend(struct platform_device *dev, pm_message_t pm)
 {
-    //struct s3c_nand *info = platform_get_drvdata(dev);
+    struct s3c_nand *info = platform_get_drvdata(dev);
     clk_disable(s3c_nand.clk);
     return 0;
 }
 
 static int s3c_nand_resume(struct platform_device *dev)
 {
-    //struct s3c_nand *info = platform_get_drvdata(dev);
+    struct s3c_nand *info = platform_get_drvdata(dev);
     clk_enable(s3c_nand.clk);
     return 0;
 }
