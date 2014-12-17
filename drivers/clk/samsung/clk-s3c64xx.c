@@ -320,7 +320,6 @@ static struct samsung_clock_alias s3c64xx_clock_aliases[] = {
 	ALIAS(DOUT_MPLL, NULL, "dout_mpll"),
 	ALIAS(HCLKX2, NULL, "hclk2"),
 	ALIAS(HCLK, NULL, "hclk"),
-	ALIAS(HCLK,"s3c6400-nand", "nand"),
 	ALIAS(PCLK, NULL, "pclk"),
 	ALIAS(PCLK, NULL, "clk_uart_baud2"),
 	ALIAS(ARMCLK, NULL, "armclk"),
@@ -379,7 +378,7 @@ static struct samsung_clock_alias s3c6410_clock_aliases[] = {
 	ALIAS(SCLK_FIMC, "s3c-camif", "fimc"),
 	ALIAS(SCLK_AUDIO2, "samsung-i2s.2", "audio-bus"),
 	ALIAS(MEM0_SROM, NULL, "srom"),
-	ALIAS(MEM0_NFCON,"s3c6410-nand", "nand"),
+	ALIAS(MEM0_NFCON,"s3c6400-nand", "nand"),
 };
 
 static void __init s3c64xx_clk_register_fixed_ext(unsigned long fin_pll_f,

@@ -869,6 +869,7 @@ int mtd_read_oob(struct mtd_info *mtd, loff_t from, struct mtd_oob_ops *ops)
 	 * representing max bitflips. In other cases, mtd->_read_oob() may
 	 * return -EUCLEAN. In all cases, perform similar logic to mtd_read().
 	 */
+	 pr_info("From:%d, len:%d, ooblen:%d,ooboffs:%d, datbuf:%p,oobbuf:%p\n", from, ops->len, ops->ooblen, ops->ooboffs,ops->datbuf,ops->oobbuf);
 	ret_code = mtd->_read_oob(mtd, from, ops);
 	if (unlikely(ret_code < 0))
 		return ret_code;

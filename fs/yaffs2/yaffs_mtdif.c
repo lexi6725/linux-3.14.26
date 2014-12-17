@@ -138,6 +138,7 @@ static int yaffs_mtd_read(struct yaffs_dev *dev, int nand_chunk,
 	/* Read page and oob using MTD.
 	 * Check status and determine ECC result.
 	 */
+	pr_info("From: %ld  len: %d ooblen:%d ooboffs:%d databuf:%p oobbuf: %p\n", addr, ops.len, ops.ooblen, ops.ooboffs, ops.datbuf, ops.oobbuf);
 	retval = mtd_read_oob(mtd, addr, &ops);
 	if (retval)
 		yaffs_trace(YAFFS_TRACE_MTD,

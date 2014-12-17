@@ -1942,7 +1942,7 @@ static int nand_read_oob(struct mtd_info *mtd, loff_t from,
 	default:
 		goto out;
 	}
-
+	pr_info("nand_read_oob: From: %ld  len: %d ooblen:%d ooboffs:%d databuf:%p oobbuf: %p\n", from, ops->len, ops->ooblen, ops->ooboffs, ops->datbuf, ops->oobbuf);
 	if (!ops->datbuf)
 		ret = nand_do_read_oob(mtd, from, ops);
 	else

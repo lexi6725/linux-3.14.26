@@ -133,6 +133,7 @@ static int yaffs_init_tmp_buffers(struct yaffs_dev *dev)
 		dev->temp_buffer[i].in_use = 0;
 		buf = kmalloc(dev->param.total_bytes_per_chunk, GFP_NOFS);
 		dev->temp_buffer[i].buffer = buf;
+		pr_info("yaffs: temp_buff[%d].buffer:%p\n", i, dev->temp_buffer[i].buffer);
 	}
 
 	return buf ? YAFFS_OK : YAFFS_FAIL;
@@ -149,6 +150,7 @@ u8 *yaffs_get_temp_buffer(struct yaffs_dev * dev)
 	for (i = 0; i < YAFFS_N_TEMP_BUFFERS; i++) {
 		if (dev->temp_buffer[i].in_use == 0) {
 			dev->temp_buffer[i].in_use = 1;
+			//pr_info("yaffs: temp_buff[%d].buffer:%p\n", i, dev->temp_buffer[i].buffer);
 			return dev->temp_buffer[i].buffer;
 		}
 	}

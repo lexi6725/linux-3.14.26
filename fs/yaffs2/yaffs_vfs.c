@@ -179,11 +179,11 @@ static uint32_t YCALCBLOCKS(uint64_t partition_size, uint32_t block_size)
 #include "yaffs_packedtags2.h"
 #include "yaffs_getblockinfo.h"
 
-unsigned int yaffs_trace_mask =
+unsigned int yaffs_trace_mask = 0xffffffff;/*
 		YAFFS_TRACE_BAD_BLOCKS |
 		YAFFS_TRACE_ALWAYS |
 		0;
-
+*/
 unsigned int yaffs_wr_attempts = YAFFS_WR_ATTEMPTS;
 unsigned int yaffs_auto_checkpoint = 1;
 unsigned int yaffs_gc_control = 1;
@@ -2783,6 +2783,22 @@ static struct super_block *yaffs_internal_read_super(int yaffs_version,
 			MINOR(sb->s_dev));
 		return NULL;
 	}
+	
+	yaffs_trace(YAFFS_TRACE_OS, " erase %p", mtd->_erase);
+	yaffs_trace(YAFFS_TRACE_OS, " read %p", mtd->_read);
+	yaffs_trace(YAFFS_TRACE_OS, " write %p", mtd->_write);
+	yaffs_trace(YAFFS_TRACE_OS, " readoob %p", mtd->_read_oob);
+	yaffs_trace(YAFFS_TRACE_OS, " writeoob %p", mtd->_write_oob);
+	yaffs_trace(YAFFS_TRACE_OS, " block_isbad %p", mtd->_block_isbad);
+	yaffs_trace(YAFFS_TRACE_OS, " block_markbad %p", mtd->_block_markbad);
+	yaffs_trace(YAFFS_TRACE_OS, " %s %d", WRITE_SIZE_STR, WRITE_SIZE(mtd));
+	yaffs_trace(YAFFS_TRACE_OS, " oobsize %d", mtd->oobsize);
+	yaffs_trace(YAFFS_TRACE_OS, " erasesize %d", mtd->erasesize);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 29)
+	yaffs_trace(YAFFS_TRACE_OS, " size %u", mtd->size);
+#else
+	yaffs_trace(YAFFS_TRACE_OS, " size %lld", mtd->size);
+#endif
 
 	if (yaffs_auto_select && yaffs_version == 1 && WRITE_SIZE(mtd) >= 2048) {
 		yaffs_trace(YAFFS_TRACE_ALWAYS, "auto selecting yaffs2");
@@ -2867,7 +2883,8 @@ static struct super_block *yaffs_internal_read_super(int yaffs_version,
 
 	if (options.tags_ecc_overridden)
 		param->no_tags_ecc = !options.tags_ecc_on;
-
+	
+	param->no_tags_ecc =1;		//lexi
 	param->empty_lost_n_found = 1;
 	param->refresh_period = 500;
 	param->disable_summary = options.disable_summary;

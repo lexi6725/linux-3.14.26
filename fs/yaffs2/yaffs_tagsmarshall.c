@@ -73,13 +73,15 @@ static int yaffs_tags_marshall_read(struct yaffs_dev *dev,
 	    dev->param.no_tags_ecc ? (void *)&pt.t : (void *)&pt;
 
 	yaffs_trace(YAFFS_TRACE_MTD,
-		"yaffs_tags_marshall_read chunk %d data %p tags %p",
-		nand_chunk, data, tags);
+		"yaffs_tags_marshall_read chunk %d data %p tags %p pack_t_size %d",
+		nand_chunk, data, tags, packed_tags_size);
+	
 
 	if (dev->param.inband_tags) {
 		if (!data) {
 			local_data = 1;
 			data = yaffs_get_temp_buffer(dev);
+			pr_info( "data: %p\n", data);
 		}
 	}
 
