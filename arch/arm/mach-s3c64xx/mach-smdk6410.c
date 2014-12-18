@@ -310,7 +310,6 @@ static struct platform_device s3c_device_dm9000 = {
 /*
  * Configuring Nandflash on SMDK6410
  */
-
 struct mtd_partition ok6410_nand_part[] = {
 	{
 		.name		= "Bootloader",
@@ -320,17 +319,17 @@ struct mtd_partition ok6410_nand_part[] = {
 	},
 	{
 		.name		= "Kernel",
-		.offset		= (5 * SZ_1M),
-		.size		= (25*SZ_1M) ,
+		.offset		= (2 * SZ_1M),
+		.size		= (5*SZ_1M) ,
 		.mask_flags	= MTD_CAP_NANDFLASH,
 	},
 	{
-		.name		= "File System",
-		.offset		= (30 * SZ_1M),
+		.name		= "User",
+		.offset		= (7 * SZ_1M),
 		.size		= (200*SZ_1M) ,
 	},
 	{
-		.name		= "User",
+		.name		= "File System",
 		.offset		= MTDPART_OFS_APPEND,
 		.size		= MTDPART_SIZ_FULL,
 	}
